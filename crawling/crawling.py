@@ -14,11 +14,19 @@ def connect_api():
     return api
 
 
-def get_tweets(api, username):
+def get_tweets_by_username(api, username):
     try:
-        tweets = api.home_timeline(username, tweet_mode="extended")
+        tweets = api.user_timeline(user_id = username, tweet_mode="extended")
     except:
-        tweets = api.home_timeline(username)
+        tweets = api.user_timeline(user_id = username)
+
+    return tweets
+
+def get_tweets_by_quary(api, quary, count = 100):
+    try:
+        tweets = api.search_tweets(quary, tweet_mode = "extended", lang = "ko", count = 100)
+    except:
+        tweets = api.search_tweets(quary, lang = "ko", count = 100)
 
     return tweets
 
@@ -26,4 +34,10 @@ def get_tweets(api, username):
 if __name__=="__main__":
     username = "KayyoungHL"
     api = connect_api()
-    print(get_tweets(api, username)[0].full_text)
+    print(get_tweets_by_username(api, username)[0].full_text)
+    # quary = "딥러닝"
+    # i = 1
+    # tweets = api.search_tweets(quary, tweet_mode = "extended", lang = "ko", count = 100)
+    
+    # for i in tweets:
+    #     print(i.full_text)
