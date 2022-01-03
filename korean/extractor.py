@@ -27,7 +27,7 @@ def chosung_tokenizer(string):
     result = []
     for char in string:
         check = ord(char)
-        if not FIRST_HANGUL < check < LAST_HANGUL:
+        if not FIRST_HANGUL <= check <= LAST_HANGUL:
             result.append(char) # 한글 아니면 걍 붙인다.
         else:
             code = check - FIRST_HANGUL
