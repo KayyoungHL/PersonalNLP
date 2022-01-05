@@ -1,26 +1,38 @@
 from korean import chosung_tokenizer
 from crawling import connect_api, get_tweets_by_quary
-import tensorflow as tf
-from tensorflow.keras import Sequential, Model
-from tensorflow.keras.layers import Dense, Input, LSTM, Bidirectional, Attention, Embedding, Dropout
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing import sequence
 import pandas as pd
 import re
 
+from transformer import Transformer
+
 def get_tweets():
     quary = "딥러닝"
     api = connect_api()
-    tweets = get_tweets_by_quary(api, quary, count = 100)
+    tweets = get_tweets_by_quary(api, quary, count = 10000)
 
     return tweets
 
 
 def preprocessing(text):
     step1 = text.split("\n")
-    step2 = [re.sub("[^ㄱ-ㅎ가-힣 .?!\"\']", "", i) for i in step1]
+    step2 = [re.sub("[^ㄱ-ㅎ가-힣 .?!]", "", i) for i in step1]
+    step3 = [re.sub(r'\s+', " ", x.strip()) for x in step2]
+    step4 = [re.sub(r'[?]+', "?", x.strip()) for x in step3]
+    step5 = [re.sub(r'[!]+', "!", x.strip()) for x in step4]
+    step6 = []
+    for i in step5:
+        step6.extend(i.split("!"))
+    step7 = []
+    for i in step6:
+        step7.extend(i.split("?"))
+    step8 = []
+    for i in step7:
+        step8.extend(i.split(". "))
+    step8 = list(set(step8))
 
-    return step2
+    return step8
 
 
 def nlp_tokenize(X, maxlen=100, num_words=1000):
@@ -38,49 +50,6 @@ def nlp_tokenize(X, maxlen=100, num_words=1000):
     return X_seq_matrix, word_encoded
 
 
-def create_encoder(maxlen=100, num_words=1000):
-    inputs = Input(shape = [maxlen])
-    layer = Embedding(input_dim = num_words, output_dim = 64, input_length = maxlen)(inputs)
-    layer, state_h, state_c = LSTM(
-        units = 64, activation='tanh', recurrent_activation='sigmoid', 
-        use_bias=True, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', 
-        bias_initializer='zeros', unit_forget_bias=True, kernel_regularizer=None, 
-        recurrent_regularizer=None, bias_regularizer=None, activity_regularizer=None, 
-        kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, 
-        dropout=0.0, recurrent_dropout=0.0, return_sequences=False, return_state=True, 
-        go_backwards=False, stateful=False, time_major=False, unroll=False)(layer)
-
-    model = Model(inputs=inputs,outputs=layer)
-    encoder_state = [state_h, state_c]
-
-    return model, encoder_state
-
-
-def create_decoder(maxlen=100, num_words=1000):
-    decoder_states_inputs = [Input(shape=(256,)), Input(shape=(256,))]
-    
-
-    inputs = Input(shape = [maxlen])
-    layer = Embedding(input_dim = num_words, output_dim = 64, input_length = maxlen)(inputs)
-    layer, state_h, state_c = LSTM(
-        units = 64, activation='tanh', recurrent_activation='sigmoid', 
-        use_bias=True, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', 
-        bias_initializer='zeros', unit_forget_bias=True, kernel_regularizer=None, 
-        recurrent_regularizer=None, bias_regularizer=None, activity_regularizer=None, 
-        kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, 
-        dropout=0.0, recurrent_dropout=0.0, return_sequences=True, return_state=True, 
-        go_backwards=False, stateful=False, time_major=False, unroll=False)(layer, initial_state=decoder_states_inputs)
-    
-    decoder_states = [state_h, state_c]
-    
-    layer = Dense(maxlen, activation='softmax')(layer)
-    model = Model(
-        inputs = [inputs] + decoder_states_inputs,
-        outputs = [layer] + decoder_states)
-
-    return model
-
-
 if __name__ == "__main__":
     # string = "오늘 저녁 치킨 고?"
     # print(chosung_tokenizer(string))
@@ -88,14 +57,17 @@ if __name__ == "__main__":
     chosungs = []
     labels = []
     for tweet in tweets:
-    # for texts in ["오늘 저녁 치킨 고?"]:
-    #     text = preprocessing(texts)
         text = preprocessing(tweet.full_text)
         labels.extend(["\t " + i + " \n" for i in text])
-        chosungs.extend([chosung_tokenizer(j) for j in text])
+        
     
+    labels = list(set(labels))
+    chosungs = [chosung_tokenizer(i) for i in labels]
 
     df = pd.DataFrame(zip(chosungs,labels), columns=["chosung","target"])
+    df.to_csv("data.csv")
     print(df)
+    
     X_train = df.chosung
     y_train = df.target
+

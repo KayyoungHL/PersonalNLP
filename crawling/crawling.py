@@ -22,11 +22,11 @@ def get_tweets_by_username(api, username):
 
     return tweets
 
-def get_tweets_by_quary(api, quary, count = 100):
+def get_tweets_by_quary(api, quary, count):
     try:
-        tweets = api.search_tweets(quary, tweet_mode = "extended", lang = "ko", count = 100)
+        tweets = api.search_tweets(quary, tweet_mode = "extended", lang = "ko", count = count)
     except:
-        tweets = api.search_tweets(quary, lang = "ko", count = 100)
+        tweets = api.search_tweets(quary, lang = "ko", count = count)
 
     return tweets
 
